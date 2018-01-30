@@ -5,8 +5,10 @@ rm -rf .dev \
 && cd .dev \
 && git init \
 && git checkout -b gh-pages \
+&& echo "turtle_pools.p2p.ninja" > CNAME \
 && git add . \
 && git commit -m ".dev" \
 && git remote add origin git@github.com:blakelapierre/turtle_pools \
-&& git push origin :gh-pages \
+&& git fetch origin \
+&& git rebase --ours origin/gh-pages \
 && git push origin gh-pages

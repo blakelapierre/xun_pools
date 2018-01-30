@@ -16,7 +16,7 @@ const Pools = ({started, pools}, {mutation}) => (
   <pools>
     {started ? Object
                 .values(pools)
-                .sort((a, b) => a.stats.pool && b.stats.pool && a.stats.pool.hashrate > b.stats.pool.hashrate ? -1 : 1)
+                .sort((a, b) => !a.stats.pool ? 1 : (!b.stats.pool ? -1 : (a.stats.pool.hashrate > b.stats.pool.hashrate ? -1 : 1)))
                 .map(pool => <Pool pool={pool} />)
 
              : mutation(START)(mutation)}
@@ -25,15 +25,14 @@ const Pools = ({started, pools}, {mutation}) => (
 
 const Pool = ({pool:{url, stats}}) => (
   <pool>
-    {url}
-
     {stats.pool ? <PoolStats stats={stats} /> : undefined}
+    {url}
   </pool>
 );
 
 const PoolStats = ({stats}) => (
   <pool-stats>
-    <div>Hashrate: {stats.pool.hashrate}</div>
+    <hashrate>Hashrate: {stats.pool.hashrate}</hashrate>
     <div>Miners: {stats.pool.miners}</div>
     {stats.pool.workers ? <div>Workers: {stats.pool.workers}</div> : undefined}
   </pool-stats>
