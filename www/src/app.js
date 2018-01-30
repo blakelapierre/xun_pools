@@ -1,121 +1,67 @@
 import { h, render } from 'preact-cycle';
 
-const ADD_TRACKER_ITEM = ({
-  tracker: {
-    items,
-    inputText,
-    ...trackerProps
-  }, ...props
-}) => ({
-  tracker: {
-    items: items.concat(inputText),
-    inputText: '',
-    ...trackerProps
-  }, ...props
-});
+import poolUrls from './pools';
 
-const SET_TRACKER_TEXT = ({
-  tracker: {
-    inputText,
-    ...trackerProps
-  },
-  ...props
-}, event) => ({
-  tracker: {
-    inputText: event.target.value,
-    ...trackerProps
-  },
-  ...props
-});
+const START = (_, mutation) => {
+  _.started = true;
 
-const fromEvent = (prev, event) => event.target.value;
+  _.pools = _.poolUrls.map(url => monitorPool({url, stats: {}}, mutation));
+};
 
-const Tracker = ({tracker:{items, inputText}}, {mutation}) => (
-  <tracker>
-    {items.map(item => <item>{item}</item>)}
-    <TrackerInput inputText={inputText} />
-  </tracker>
+const UPDATE_STATS = (_, pool, stats) => {
+  Object.assign(pool.stats = pool.stats || {}, stats);
+};
+
+const Pools = ({started, pools}, {mutation}) => (
+  <pools>
+    {started ? Object
+                .values(pools)
+                .sort((a, b) => a.stats.pool && b.stats.pool && a.stats.pool.hashrate > b.stats.pool.hashrate ? -1 : 1)
+                .map(pool => <Pool pool={pool} />)
+
+             : mutation(START)(mutation)}
+  </pools>
 );
 
-const TrackerInput = ({inputText}, {mutation}) => (
-  <tracker-input>
-    <form onSubmit={mutation(ADD_TRACKER_ITEM)} action="javascript:">
-      <input placeholder="New item..." value={inputText} onInput={mutation(SET_TRACKER_TEXT)} autoFocus />
-    </form>
-  </tracker-input>
+const Pool = ({pool:{url, stats}}) => (
+  <pool>
+    {url}
+
+    {stats.pool ? <PoolStats stats={stats} /> : undefined}
+  </pool>
 );
 
-const Info = ({items}, {info: {metrics}}) => (
-  <info>
-    <headers>
-      {metrics.map(metric => <Metric metric={metric} />)}
-    </headers>
-    <bars>
-      {metrics.map(metric => <Bar value={Math.random() * 100} />)}
-    </bars>
-  </info>
-);
-
-const Metric = ({metric: {name, units}}) => (
-  <metric>{name} ({units[0]})</metric>
-);
-
-const Bar = ({value}) => (
-  <bar style={{'height': `${value}%`}}>bar</bar>
-);
-
-const SideBySide = ({tracker, info}) => (
-  <side-by-side>
-    <Tracker tracker={tracker} />
-    <Info info={info} />
-  </side-by-side>
+const PoolStats = ({stats}) => (
+  <pool-stats>
+    <div>Hashrate: {stats.pool.hashrate}</div>
+    <div>Miners: {stats.pool.miners}</div>
+    {stats.pool.workers ? <div>Workers: {stats.pool.workers}</div> : undefined}
+  </pool-stats>
 );
 
 render(
-  SideBySide, {
-    tracker: {items: [], text: ''},
-    info: {
-      items: [],
-      metrics: [{
-        name: 'Calories',
-        units: ['kcal']
-      },{
-        name: 'Saturated Fat',
-        units: ['g'],
-        group: 'Total Fat'
-      },{
-        name: 'Trans Fat',
-        units: ['g']
-      },{
-        name: 'Monounsaturated Fat',
-        units: ['g'],
-        group: 'Unsaturated Fat'
-      },{
-        name: 'Polyunsaturated Fat',
-        units: ['g'],
-        group: 'Unsaturated Fat'
-      },{
-        name: 'Sugars',
-        units: ['g']
-      },{
-        name: 'Soluble Fiber',
-        units: ['g']
-      },{
-        name: 'Insoluble Fiber',
-        units: ['g']
-      },{
-        name: 'Other Carbohydrates',
-        units: ['g']
-      },{
-        name: 'Protein',
-        units: ['g']
-      },{
-        name: 'Sodium',
-        units: ['mg']
-      },{
-        name: 'Potassium',
-        units: ['mg']
-      }]
-    },
-  }, document.body
+  Pools, {poolUrls}, document.body
 );
+
+function monitorPool(pool, mutation) {
+  fetch(pool.url)
+    .then(response => {
+      response
+        .json()
+        .then(json => mutation(UPDATE_STATS)(pool, json))
+        .catch(error => console.log('Error decoding json', pool.url, response));
+      setTimeout(() => monitorPool(pool, mutation), 10000);
+    })
+    .catch(error => {
+      console.log('Error fetching', pool.url, error);
+      setTimeout(() => monitorPool(pool, mutation), 10000);
+    });
+
+  return pool;
+}
+
+function getPoolStats(url, updateStats) {
+  fetch(url).then(response => {
+    response.json().then(json => updateStats(url, json));
+  });
+}
