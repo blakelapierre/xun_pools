@@ -2,16 +2,33 @@ import { h, render } from 'preact-cycle';
 
 import poolUrls from './pools';
 
+const A = document.createElement('a');
+
 const START = (_, mutation) => {
   console.log('started');
   _.started = true;
 
   _.pools = _.poolUrls.map(url => monitorPool({url, stats: {}}, mutation));
+  _.poolsStats = {};
 };
 
 const UPDATE_STATS = (_, pool, stats) => {
   Object.assign(pool.stats = pool.stats || {}, stats);
   delete pool.error;
+
+  const poolsStats = _.pools.reduce((stats, pool) => {
+    if (pool.stats.pool) {
+      const {hashrate, miners} = pool.stats.pool;
+      stats.hashrate += hashrate || 0;
+      stats.miners += miners || 0;
+
+      if (hashrate > stats.maxHashrate) stats.maxHashrate = hashrate;
+      if (miners > stats.maxMiners) stats.maxMiners = miners;
+    }
+    return stats;
+  }, {hashrate: 0, miners: 0, maxHashrate: 0, maxMiners: 0});
+
+  Object.assign(_.poolsStats, poolsStats);
 };
 
 const POOL_ERROR = (_, pool, error) => {
@@ -24,8 +41,12 @@ const View = (Component) => ({started, ...props}, {mutation}) => (
   </view>
 );
 
-const Pools = ({pools}, {mutation}) => (
+const Pools = ({pools, poolsStats}, {mutation}) => (
   <pools>
+    <global>
+      <hashrate>Hashrate: {poolsStats.hashrate}</hashrate>
+      <miners>Miners: {poolsStats.miners}</miners>
+    </global>
     {Object
       .values(pools)
       .sort((a, b) => !a.stats.pool ? 1 : (!b.stats.pool ? -1 : (a.stats.pool.hashrate > b.stats.pool.hashrate ? -1 : 1)))
@@ -35,19 +56,23 @@ const Pools = ({pools}, {mutation}) => (
 
 const Pool = ({pool:{url, stats, error}}) => (
   <pool>
+    <a href={A.href = url, `${A.protocol}${A.hostname}`} target="_new">{A.hostname}</a>
     {stats.pool ? <PoolStats stats={stats} /> : undefined}
-    <a href={url} target="_new">{url}</a>
     {error ? <PoolError error={error} /> : undefined}
   </pool>
 );
 
-const PoolStats = ({stats}) => (
+const PoolStats = ({stats}, {poolsStats}) => (
   <pool-stats>
     <hashrate>Hashrate: {stats.pool.hashrate}</hashrate>
-    <div>Miners: {stats.pool.miners}</div>
-    {stats.pool.workers ? <div>Workers: {stats.pool.workers}</div> : undefined}
+    <hashrate-bar style={{'width': `${stats.pool.hashrate / poolsStats.maxHashrate * 100}%`}}></hashrate-bar>
+
+    <miners>Miners: {stats.pool.miners}</miners>
+    <miners-bar style={{'width': `${stats.pool.miners / poolsStats.maxMiners * 100}%`}}></miners-bar>
+
   </pool-stats>
 );
+    // {stats.pool.workers ? <workers>Workers: {stats.pool.workers}</workers> : undefined}
 
 const PoolError = ({error}) => (
   <pool-error>
