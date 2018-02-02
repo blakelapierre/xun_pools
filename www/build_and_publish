@@ -1,14 +1,17 @@
 #!/bin/sh
 
 rm -rf .rev \
+&& rm -rf .publish_stage \
+&& mkdir .publish_stage \
 && gulp build \
-&& cd .rev \
+&& cd .publish_stage \
 && git init \
 && git checkout -b gh-pages \
+&& git remote add origin git@github.com:blakelapierre/turtle_pools \
+&& git pull origin gh-pages \
+&& git rm -r . \
 && echo "turtle_pools.p2p.ninja" > CNAME \
+&& cp  -r ../.rev/* . \
 && git add . \
 && git commit -m ".rev" \
-&& git remote add origin git@github.com:blakelapierre/turtle_pools \
-&& git fetch origin \
-&& git rebase -s ours origin/gh-pages \
 && git push origin gh-pages
