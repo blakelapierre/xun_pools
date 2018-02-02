@@ -10,6 +10,11 @@ const START = (_, mutation) => {
 
 const UPDATE_STATS = (_, pool, stats) => {
   Object.assign(pool.stats = pool.stats || {}, stats);
+  delete pool.error;
+};
+
+const POOL_ERROR = (_, pool, error) => {
+  pool.error = error;
 };
 
 const Pools = ({started, pools}, {mutation}) => (
@@ -23,10 +28,11 @@ const Pools = ({started, pools}, {mutation}) => (
   </pools>
 );
 
-const Pool = ({pool:{url, stats}}) => (
+const Pool = ({pool:{url, stats, error}}) => (
   <pool>
     {stats.pool ? <PoolStats stats={stats} /> : undefined}
-    {url}
+    <a href={url} target="_new">{url}</a>
+    {error ? <PoolError error={error} /> : undefined}
   </pool>
 );
 
@@ -36,6 +42,12 @@ const PoolStats = ({stats}) => (
     <div>Miners: {stats.pool.miners}</div>
     {stats.pool.workers ? <div>Workers: {stats.pool.workers}</div> : undefined}
   </pool-stats>
+);
+
+const PoolError = ({error}) => (
+  <pool-error>
+    {error.message}
+  </pool-error>
 );
 
 render(
@@ -53,6 +65,7 @@ function monitorPool(pool, mutation) {
     })
     .catch(error => {
       console.log('Error fetching', pool.url, error);
+      mutation(POOL_ERROR)(pool, error);
       setTimeout(() => monitorPool(pool, mutation), 10000);
     });
 

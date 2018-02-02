@@ -10,5 +10,5 @@ rm -rf .dev \
 && git commit -m ".dev" \
 && git remote add origin git@github.com:blakelapierre/turtle_pools \
 && git fetch origin \
-&& git rebase --ours origin/gh-pages \
+&& git rebase -s ours origin/gh-pages \
 && git push origin gh-pages
