@@ -3,6 +3,7 @@ import { h, render } from 'preact-cycle';
 import poolUrls from './pools';
 
 const START = (_, mutation) => {
+  console.log('started');
   _.started = true;
 
   _.pools = _.poolUrls.map(url => monitorPool({url, stats: {}}, mutation));
@@ -17,14 +18,18 @@ const POOL_ERROR = (_, pool, error) => {
   pool.error = error;
 };
 
-const Pools = ({started, pools}, {mutation}) => (
-  <pools>
-    {started ? Object
-                .values(pools)
-                .sort((a, b) => !a.stats.pool ? 1 : (!b.stats.pool ? -1 : (a.stats.pool.hashrate > b.stats.pool.hashrate ? -1 : 1)))
-                .map(pool => <Pool pool={pool} />)
+const View = (Component) => ({started, ...props}, {mutation}) => (
+  <view>
+    {started ? <Component {...props} /> : mutation(START)(mutation)}
+  </view>
+);
 
-             : mutation(START)(mutation)}
+const Pools = ({pools}, {mutation}) => (
+  <pools>
+    {Object
+      .values(pools)
+      .sort((a, b) => !a.stats.pool ? 1 : (!b.stats.pool ? -1 : (a.stats.pool.hashrate > b.stats.pool.hashrate ? -1 : 1)))
+      .map(pool => <Pool pool={pool} />)}
   </pools>
 );
 
@@ -51,7 +56,7 @@ const PoolError = ({error}) => (
 );
 
 render(
-  Pools, {poolUrls}, document.body
+  View(Pools), {poolUrls}, document.body
 );
 
 function monitorPool(pool, mutation) {
