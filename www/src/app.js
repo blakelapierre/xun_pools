@@ -45,6 +45,7 @@ const View = (Component) => ({started, ...props}, {mutation}) => (
 const Pools = ({pools, poolsStats}, {mutation}) => (
   <pools>
     <global>
+      <h1>All Known Pools</h1>
       <hashrate>Hashrate: {poolsStats.hashrate}</hashrate>
       <miners>Miners: {poolsStats.miners}</miners>
     </global>
