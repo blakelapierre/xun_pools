@@ -13,6 +13,7 @@ const START = (_, mutation) => {
 };
 
 const UPDATE_STATS = (_, pool, stats) => {
+  console.log(stats);
   Object.assign(pool.stats = pool.stats || {}, stats);
   delete pool.error;
 
@@ -70,9 +71,23 @@ const PoolStats = ({stats}, {poolsStats}) => (
     <miners>Miners: {stats.pool.miners}</miners>
     <miners-bar style={{'width': `${stats.pool.miners / poolsStats.maxMiners * 100}%`}}></miners-bar>
 
+    <config>
+      <div>Fee: {stats.config.fee}</div>
+      <div>Min Payment: {stats.config.minPaymentThreshold}</div>
+
+      <table>
+        <thead>
+          <tr><th>Port</th><th>Difficulty</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          {stats.config.ports.map(({port, difficulty, desc}) => (
+            <tr><td>{port}</td><td>{difficulty}</td><td>{desc}</td></tr>
+          ))}
+        </tbody>
+      </table>
+    </config>
   </pool-stats>
 );
-    // {stats.pool.workers ? <workers>Workers: {stats.pool.workers}</workers> : undefined}
 
 const PoolError = ({error}) => (
   <pool-error>

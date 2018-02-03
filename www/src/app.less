@@ -14,13 +14,15 @@ body {
   padding: 0;
 
   background-color: #000002;
-  color: #000;
+  color: #fff;
 }
 
 view {
   width: 100%;
 
   display: flex;
+
+  overflow-y: auto;
 
   pools {
     display: block;
@@ -62,6 +64,18 @@ view {
 
         miners-bar {
           background-color: @minersColor;
+        }
+
+        config {
+          font-size: 0.8em;
+
+          ports {
+            display: flex;
+            flex-direction: column;
+
+            pool-port {
+            }
+          }
         }
       }
 
