@@ -44,6 +44,7 @@ const View = (Component) => ({started, ...props}, {mutation}) => (
 
 const Pools = ({pools, poolsStats}, {mutation}) => (
   <pools>
+    <Network pools={pools} />
     <global>
       <h1>All Known Pools</h1>
       <hashrate>Hashrate: {poolsStats.hashrate}</hashrate>
@@ -54,6 +55,20 @@ const Pools = ({pools, poolsStats}, {mutation}) => (
       .sort((a, b) => !a.stats.pool ? 1 : (!b.stats.pool ? -1 : (a.stats.pool.hashrate > b.stats.pool.hashrate ? -1 : 1)))
       .map(pool => <Pool pool={pool} />)}
   </pools>
+);
+
+const Network = ({pools}) => (
+  <network>
+    <table>
+      <thead>
+        <th>pool</th>
+        <th>reported network difficulty</th>
+      </thead>
+      <tbody>
+        {pools.map(pool => <tr><td>{A.href = pool.url, A.hostname}</td><td>{(pool.stats.network||{}).difficulty}</td></tr>)}
+      </tbody>
+    </table>
+  </network>
 );
 
 const Pool = ({pool:{url, stats, error}}) => (
