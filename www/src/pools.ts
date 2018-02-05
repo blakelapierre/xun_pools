@@ -7,5 +7,6 @@ export default [
   'http://slowandsteady.fun:8119/live_stats',
   'http://hk.turtlepool.space:8117/live_stats',
   'http://eu.turtlepool.space:8117/live_stats',
-  'https://trtl.ninja/api/stats'
+  'https://trtl.ninja/api/stats',
+  'http://159.65.34.150:8117/live_stats'
 ];

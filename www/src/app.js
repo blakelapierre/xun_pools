@@ -91,7 +91,7 @@ const Network = ({pools}, {difficultyThresholdInput, mutation}) => (
 
 const Pool = ({pool:{url, stats, error}}) => (
   <pool>
-    <a href={A.href = url, `${A.protocol}${A.hostname}`} target="_new">{A.hostname}</a>
+    <a href={A.href = url, `${A.protocol || 'http'}${A.hostname}`} target="_new">{A.hostname}</a>
     {stats.pool ? <PoolStats stats={stats} /> : undefined}
     {error ? <PoolError error={error} /> : undefined}
   </pool>
