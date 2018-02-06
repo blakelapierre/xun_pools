@@ -70,6 +70,7 @@ const Pools = ({pools, poolsStats}, {mutation}) => (
       .values(pools)
       .sort((a, b) => !a.stats.pool ? 1 : (!b.stats.pool ? -1 : (a.stats.pool.hashrate > b.stats.pool.hashrate ? -1 : 1)))
       .map(pool => <Pool pool={pool} />)}
+    <donate>Donate to: TRTLv1W1So77yGbVtrgf8G4epg5Fhq9hEZvpZC8ev86xRVLYsQQMHrxQG92QVjUU3bcE6ThGw9vSbEHBMejJpexE2sdrTC24ZXR</donate>
   </pools>
 );
 
