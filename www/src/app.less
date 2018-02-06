@@ -19,13 +19,11 @@ body {
 
 @keyframes updated {
   from {
-    color: #000;
-    background-color: #fff;
+    color: #fff;
   }
 
   to {
-    color: #fff;
-    background-color: #000;
+    color: #444;
   }
 }
 
@@ -38,15 +36,13 @@ view {
 
   network {
     tr {
-      background-color: #fff;
-      color: #000;
+      .difficulty {
+        text-align: center;
 
-      &.updated {
-        background-color: #000;
-        color: #fff;
-
-        animation: updated 10s linear;
-        animation-fill-mode: forwards;
+        &.updated {
+          animation: updated 10s linear;
+          animation-fill-mode: both;
+        }
       }
     }
   }
