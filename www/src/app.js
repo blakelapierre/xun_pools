@@ -21,6 +21,8 @@ const UPDATE_STATS = (_, pool, stats) => {
   Object.assign(pool.stats = pool.stats || {}, stats);
   delete pool.error;
 
+  pool.updated = new Date().getTime();
+
   const poolsStats = _.pools.reduce((stats, pool) => {
     if (pool.stats.pool) {
       const {hashrate, miners} = pool.stats.pool;
@@ -79,7 +81,7 @@ const Network = ({pools}, {difficultyThresholdInput, mutation}) => (
         <th>reported network difficulty</th>
       </thead>
       <tbody>
-        {pools.map(pool => <tr><td>{A.href = pool.url, A.hostname}</td><td>{(pool.stats.network||{}).difficulty}</td></tr>)}
+        {pools.map(pool => <tr className={new Date().getTime() - pool.updated > 9 * 1000 ? '' : 'updated'}><td>{A.href = pool.url, A.hostname}</td><td>{(pool.stats.network||{}).difficulty}</td></tr>)}
       </tbody>
     </table>
     <form action="javascript:" onSubmit={mutation(SET_DIFFICULTY_NOTIFICATION_THRESHOLD)}>

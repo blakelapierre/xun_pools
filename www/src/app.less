@@ -17,6 +17,18 @@ body {
   color: #fff;
 }
 
+@keyframes updated {
+  from {
+    color: #000;
+    background-color: #fff;
+  }
+
+  to {
+    color: #fff;
+    background-color: #000;
+  }
+}
+
 view {
   width: 100%;
 
@@ -24,8 +36,19 @@ view {
 
   overflow-y: auto;
 
-  network-pool {
-    display: block;
+  network {
+    tr {
+      background-color: #fff;
+      color: #000;
+
+      &.updated {
+        background-color: #000;
+        color: #fff;
+
+        animation: updated 10s linear;
+        animation-fill-mode: forwards;
+      }
+    }
   }
 
   pools {
@@ -33,7 +56,7 @@ view {
 
     margin: 0 auto;
 
-    global {
+    network {
       display: block;
 
       padding: 1em;
