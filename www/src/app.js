@@ -93,9 +93,19 @@ const Network = ({pools}, {difficultyThresholdInput, mutation}) => (
       <thead>
         <th>pool</th>
         <th>reported network difficulty</th>
+        <th>reported hashrate</th>
       </thead>
       <tbody>
-        {pools.map(pool => <tr><td>{A.href = pool.url, A.hostname}</td><td className={new Date().getTime() - pool.updated > 9 * 1000 ? 'difficulty' : 'difficulty updated'}>{(pool.stats.network||{}).difficulty}</td></tr>)}
+        {Object
+          .values(pools)
+          .sort((a, b) => !a.stats.pool ? 1 : (!b.stats.pool ? -1 : (a.stats.pool.hashrate > b.stats.pool.hashrate ? -1 : 1)))
+          .map(pool => (
+              <tr>
+                <td><a href={(A.href = pool.url, `${A.protocol || 'http'}//${A.hostname}`)} target="_new">{A.hostname}</a></td>
+                <td className={new Date().getTime() - pool.updated > 9 * 1000 ? 'difficulty' : 'difficulty updated'}>{(pool.stats.network||{}).difficulty}</td>
+                <td>{pool.stats.pool ? pool.stats.pool.hashrate : undefined}</td>
+              </tr>
+            ))}
       </tbody>
     </table>
     <form action="javascript:" onSubmit={mutation(SET_DIFFICULTY_NOTIFICATION_THRESHOLD)}>
@@ -107,7 +117,7 @@ const Network = ({pools}, {difficultyThresholdInput, mutation}) => (
 
 const Pool = ({pool:{url, stats, error}}) => (
   <pool>
-    <a href={A.href = url, `${A.protocol || 'http'}${A.hostname}`} target="_new">{A.hostname}</a>
+    <a href={(A.href = url, `${A.protocol || 'http'}//${A.hostname}`)} target="_new">{A.hostname}</a>
     {stats.pool ? <PoolStats stats={stats} /> : undefined}
     {error ? <PoolError error={error} /> : undefined}
   </pool>
