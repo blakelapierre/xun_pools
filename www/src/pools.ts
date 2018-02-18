@@ -8,8 +8,8 @@ export default [
   'http://hk.turtlepool.space:8117/live_stats',
   'http://eu.turtlepool.space:8117/live_stats',
   'https://trtl.ninja/api/stats',
-  'http://159.65.34.150:8117/live_stats',
-  'http://207.154.243.223:8117/live_stats',
-  'http://trtlpool.ninja:8117/live_stats',
-  'http://turtle-eu.atpool.party:8117/live_stats'
+  'http://159.89.44.20:8117/live_stats',
+  'https://trtlpool.ninja/api/live_stats',
+  'http://turtle-eu.atpool.party:8117/live_stats',
+  'http://118.31.18.78:8117/live_stats'
 ];
