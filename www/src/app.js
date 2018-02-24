@@ -123,24 +123,6 @@ const Pools = ({pools, poolsStats}, {mutation}) => (
   </pools>
 );
 
-
-// const Pools = ({pools, poolsStats}, {mutation}) => (
-//   <pools>
-//     <Network pools={pools} />
-//     <global>
-//       <h1>All Known Pools</h1>
-//       <hashrate>Hashrate: {poolsStats.hashrate}</hashrate>
-//       <miners>Miners: {poolsStats.miners}</miners>
-//     </global>
-//     {Object
-//       .values(pools)
-//       .filter(pool => pool.stats)
-//       .sort((a, b) => a.stats.liveStats.pool.hashrate > b.stats.liveStats.pool.hashrate ? -1 : 1)
-//       .map(pool => <Pool pool={pool} />)}
-//     <donate>Donate to: TRTLv1W1So77yGbVtrgf8G4epg5Fhq9hEZvpZC8ev86xRVLYsQQMHrxQG92QVjUU3bcE6ThGw9vSbEHBMejJpexE2sdrTC24ZXR</donate>
-//   </pools>
-// );
-
 const HeightKnowledge = ({}, {heightData}) => (
   <height-knowledge>
     <table>
@@ -198,16 +180,25 @@ const Explorer = (
 
 const Network = (
   {pools},
-  {startTime, difficultyThresholdInput, mutation, knownNetworkRate, heightData},
-  totalBlocks =
+  {startTime, difficultyThresholdInput, mutation, heightData},
+
+  activePools =
     Object
       .values(pools)
-      .filter(pool => pool.stats)
-      .reduce((sum, pool) => sum + pool.stats.liveStats.pool.totalBlocks || 0, 0),
+      .filter(pool => pool.stats && Math.abs(heightData.last - pool.stats.height) < 6),
+
+  possiblyForkedPools =
+    Object
+      .values(pools)
+      .filter(pool => pool.stats && Math.abs(heightData.last - pool.stats.height) > 5),
+
+  unrespondedPools =
+    Object
+      .values(pools)
+      .filter(pool => !pool.stats),
+
   totalNewBlocks =
-    Object
-      .values(pools)
-      .filter(pool => pool.stats)
+    activePools
       .reduce((sum, pool) => sum + pool.stats.liveStats.pool.totalBlocks - pool.stats.firstSeenBlockCount, 0)
   ) => (
   <network>
@@ -226,29 +217,16 @@ const Network = (
           <th>seconds per block</th>
         </tr>
       </thead>
-      <tbody>
-        {Object
-          .values(pools)
-          .sort((a, b) => !a.stats ? 1 : (!b.stats ? -1 : a.stats.liveStats.pool.hashrate > b.stats.liveStats.pool.hashrate ? -1 : 1))
-          .map(pool => (
-              <tr className={{
-                'updated': (new Date().getTime() - pool.updated) <= (9 * 1000),
-                'new-block': pool.stats && ((new Date().getTime() - pool.stats.lastSeenBlock) <= (90 * 1000)),
-                'error': pool.error
-              }}>
-                <td>{pool.latency}</td>
-                <td><a href={(A.href = pool.url, `${A.protocol || 'http'}//${A.hostname}`)} target="_new">{A.hostname}</a></td>
-                <td className={{'possible-fork': pool.stats && Math.abs(heightData.last - pool.stats.liveStats.network.height) > 5}}>{pool.stats ? pool.stats.liveStats.network.height : undefined}</td>
-                <td>{pool.stats ? pool.stats.liveStats.network.difficulty : undefined}</td>
-                <td>{pool.stats ? pool.stats.liveStats.pool.hashrate : undefined}</td>
-                <td>{pool.stats ? (pool.stats.liveStats.pool.hashrate / knownNetworkRate * 100).toFixed(1) : undefined}</td>
-                <td>{pool.stats ? pool.stats.liveStats.pool.totalBlocks : undefined}</td>
-                <td>{pool.stats ? pool.stats.liveStats.pool.totalBlocks - pool.stats.firstSeenBlockCount : undefined}</td>
-                <td>{pool.stats && pool.stats.liveStats.pool.totalBlocks - pool.stats.firstSeenBlockCount > 0 ? ((new Date().getTime() - startTime) / (pool.stats.liveStats.pool.totalBlocks - pool.stats.firstSeenBlockCount) / 1000).toFixed(1) : undefined}</td>
-              </tr>
-            ))}
-            <tr><td></td><td></td><td></td><td></td><td>{knownNetworkRate}</td><td></td><td>{totalBlocks}</td><td>{totalNewBlocks}</td></tr>
-      </tbody>
+
+      <thead><th colspan={9}>active pools</th></thead>
+      <PoolListBody pools={activePools} showSummary={true} />
+
+      <thead><th colspan={9}>possibly forked pools</th></thead>
+      <PoolListBody pools={possiblyForkedPools} />
+
+      <thead><th colspan={9}>unresponded pools</th></thead>
+      <PoolListBody pools={unrespondedPools} />
+
     </table>
     Average Seconds Per Block: {totalNewBlocks > 0 ? ((new Date().getTime() - startTime) / totalNewBlocks / 1000).toFixed(2) : 'waiting for new block'}
     <form action="javascript:" onSubmit={mutation(SET_DIFFICULTY_NOTIFICATION_THRESHOLD)}>
@@ -259,6 +237,44 @@ const Network = (
     <Explorers />
     <HeightKnowledge />
   </network>
+);
+
+const PoolListBody = (
+  {pools, showSummary},
+  {heightData},
+
+  knownNetworkRate = Object.values(pools).reduce((sum, pool) => pool.stats ? sum + pool.stats.liveStats.pool.hashrate : 0, 0),
+
+  totalBlocks =
+    pools
+      .reduce((sum, pool) => pool.stats ? sum + pool.stats.liveStats.pool.totalBlocks || 0 : 0, 0),
+
+  totalNewBlocks =
+    pools
+      .reduce((sum, pool) => pool.stats ? sum + pool.stats.liveStats.pool.totalBlocks - pool.stats.firstSeenBlockCount : 0, 0)
+) => (
+  <tbody>
+    {pools
+      .sort((a, b) => !a.stats ? 1 : (!b.stats ? -1 : a.stats.liveStats.pool.hashrate > b.stats.liveStats.pool.hashrate ? -1 : 1))
+      .map(pool => (
+          <tr className={{
+            'updated': (new Date().getTime() - pool.updated) <= (9 * 1000),
+            'new-block': pool.stats && ((new Date().getTime() - pool.stats.lastSeenBlock) <= (90 * 1000)),
+            'error': pool.error
+          }}>
+            <td>{pool.latency}</td>
+            <td><a href={(A.href = pool.url, `${A.protocol || 'http'}//${A.hostname}`)} target="_new">{A.hostname}</a></td>
+            <td className={{'possible-fork': pool.stats && Math.abs(heightData.last - pool.stats.liveStats.network.height) > 5}}>{pool.stats ? pool.stats.liveStats.network.height : undefined}</td>
+            <td>{pool.stats ? pool.stats.liveStats.network.difficulty : undefined}</td>
+            <td>{pool.stats ? pool.stats.liveStats.pool.hashrate : undefined}</td>
+            <td>{pool.stats ? (pool.stats.liveStats.pool.hashrate / knownNetworkRate * 100).toFixed(1) : undefined}</td>
+            <td>{pool.stats ? pool.stats.liveStats.pool.totalBlocks : undefined}</td>
+            <td>{pool.stats ? pool.stats.liveStats.pool.totalBlocks - pool.stats.firstSeenBlockCount : undefined}</td>
+            <td>{pool.stats && pool.stats.liveStats.pool.totalBlocks - pool.stats.firstSeenBlockCount > 0 ? ((new Date().getTime() - startTime) / (pool.stats.liveStats.pool.totalBlocks - pool.stats.firstSeenBlockCount) / 1000).toFixed(1) : undefined}</td>
+          </tr>
+        ))
+        .concat(showSummary ? [<tr><td></td><td></td><td></td><td></td><td>{knownNetworkRate}</td><td></td><td>{totalBlocks}</td><td>{totalNewBlocks}</td></tr>] : [])}
+  </tbody>
 );
 
 const Pool = ({pool:{url, stats, error}}) => (
