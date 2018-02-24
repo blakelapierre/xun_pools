@@ -1,6 +1,7 @@
 import { h, render } from 'preact-cycle';
 
 import poolUrls from './pools';
+import explorerUrls from './explorers';
 
 const A = document.createElement('a');
 
@@ -22,32 +23,75 @@ const START = (_, mutation) => {
   console.log('started');
   _.started = true;
 
-  _.pools = _.poolUrls.map(url => monitorPool({url, stats: {}}, mutation));
+  START_POOL_MONITOR(_, mutation);
+
   _.poolsStats = {};
 };
 
-const UPDATE_STATS = (_, pool, stats) => {
-  console.log(stats);
-  Object.assign(pool.stats = pool.stats || {}, stats);
+const START_POOL_MONITOR = (_, mutation) => _.pools = _.poolUrls.map(url => monitorPool({url}, mutation));
+const START_EXPLORER_MONITOR = (_, mutation) => _.explorers = _.explorerUrls.map(url => monitorExplorer({url}, _, mutation));
+
+
+const UPDATE_STATS = (_, pool, liveStats, latency, mutation) => {
+  Object.assign(pool.stats = pool.stats || {
+    firstSeenBlockCount: liveStats.pool.totalBlocks,
+    lastSeenBlockCount: liveStats.pool.totalBlocks,
+    lastSeenBlock: 0,
+    height: liveStats.network.height
+  }, {liveStats});
+
   delete pool.error;
 
   pool.updated = new Date().getTime();
+  pool.latency = latency;
 
+
+  if (_.heightData.last === undefined) {
+    _.heightData.last = liveStats.network.height;
+    START_EXPLORER_MONITOR(_, mutation);
+  }
+  else if (liveStats.network.height > _.heightData.last) {
+    _.heightData.last = liveStats.network.height; //!
+
+    _.heightData.seen.unshift([liveStats.network.height, new Date().getTime(), pool]);
+    _.heightData.span = _.heightData.seen[0][1] - _.heightData.seen[_.heightData.seen.length-1][1];
+    if (_.heightData.seen.length > 17) _.heightData.seen.splice(17, _.heightData.seen.length - 17);
+  }
+
+
+  if (liveStats.pool.totalBlocks > pool.stats.lastSeenBlockCount) {
+    pool.stats.lastSeenBlock = new Date().getTime();
+    pool.stats.lastSeenBlockCount = liveStats.pool.totalBlocks;
+  }
+
+  if (liveStats.network.height > pool.stats.height) {
+    pool.stats.height = liveStats.network.height;
+  }
+
+  _.knownNetworkRate = 0;
   const poolsStats = _.pools.reduce((stats, pool) => {
-    if (pool.stats.pool) {
-      const {hashrate, miners} = pool.stats.pool;
+    if (pool.stats && pool.stats.liveStats.pool) {
+      const {hashrate, miners} = pool.stats.liveStats.pool;
       stats.hashrate += hashrate || 0;
       stats.miners += miners || 0;
 
       if (hashrate > stats.maxHashrate) stats.maxHashrate = hashrate;
       if (miners > stats.maxMiners) stats.maxMiners = miners;
+
+      _.knownNetworkRate += hashrate;
     }
     return stats;
   }, {hashrate: 0, miners: 0, maxHashrate: 0, maxMiners: 0});
 
   Object.assign(_.poolsStats, poolsStats);
 
-  if (_.difficultyThreshold > 0 && pool.stats.network.difficulty < _.difficultyThreshold) notificationSound.play();
+  _.hashrates.push([_.knownNetworkRate, pool.updated]);
+
+  if (pool.stats.liveStats.network && _.difficultyThreshold > 0 && pool.stats.liveStats.network.difficulty < _.difficultyThreshold) notificationSound.play();
+};
+
+const UPDATE_EXPLORER = (_, explorer, {result}, latency) => {
+  Object.assign(explorer.stats = explorer.stats || {}, {result});
 };
 
 const SET_DIFFICULTY_NOTIFICATION_THRESHOLD = _ => {
@@ -71,47 +115,149 @@ const View = (Component) => ({started, ...props}, {mutation}) => (
   </view>
 );
 
+
 const Pools = ({pools, poolsStats}, {mutation}) => (
   <pools>
     <Network pools={pools} />
-    <global>
-      <h1>All Known Pools</h1>
-      <hashrate>Hashrate: {poolsStats.hashrate}</hashrate>
-      <miners>Miners: {poolsStats.miners}</miners>
-    </global>
-    {Object
-      .values(pools)
-      .sort((a, b) => !a.stats.pool ? 1 : (!b.stats.pool ? -1 : (a.stats.pool.hashrate > b.stats.pool.hashrate ? -1 : 1)))
-      .map(pool => <Pool pool={pool} />)}
     <donate>Donate to: TRTLv1W1So77yGbVtrgf8G4epg5Fhq9hEZvpZC8ev86xRVLYsQQMHrxQG92QVjUU3bcE6ThGw9vSbEHBMejJpexE2sdrTC24ZXR</donate>
   </pools>
 );
 
-const Network = ({pools}, {difficultyThresholdInput, mutation}) => (
+
+// const Pools = ({pools, poolsStats}, {mutation}) => (
+//   <pools>
+//     <Network pools={pools} />
+//     <global>
+//       <h1>All Known Pools</h1>
+//       <hashrate>Hashrate: {poolsStats.hashrate}</hashrate>
+//       <miners>Miners: {poolsStats.miners}</miners>
+//     </global>
+//     {Object
+//       .values(pools)
+//       .filter(pool => pool.stats)
+//       .sort((a, b) => a.stats.liveStats.pool.hashrate > b.stats.liveStats.pool.hashrate ? -1 : 1)
+//       .map(pool => <Pool pool={pool} />)}
+//     <donate>Donate to: TRTLv1W1So77yGbVtrgf8G4epg5Fhq9hEZvpZC8ev86xRVLYsQQMHrxQG92QVjUU3bcE6ThGw9vSbEHBMejJpexE2sdrTC24ZXR</donate>
+//   </pools>
+// );
+
+const HeightKnowledge = ({}, {heightData}) => (
+  <height-knowledge>
+    <table>
+      <thead>
+        <th colspan={2}>last {heightData.seen.length} seen heights {heightData.seen.length > 0 ? `[${((new Date().getTime() - heightData.seen[heightData.seen.length-1][1]) / 1000).toFixed(1)}s]` : undefined}</th>
+      </thead>
+      <tbody>
+        {heightData.seen.map(([height, time, pool]) => (
+          <tr><td>{height}</td><td>{((new Date().getTime() - time) / 1000).toFixed(1)}s ago</td></tr>
+        ))}
+      </tbody>
+    </table>
+  </height-knowledge>
+);
+
+const Explorers = ({}, {explorers}) => (
+  <explorers>
+    {explorers ? explorers.map(explorer => explorer.stats ? <Explorer explorer={explorer} /> : undefined) : undefined}
+  </explorers>
+);
+
+const Explorer = (
+  {explorer:{url, stats}}, {heightData},
+  computedStats = stats.result
+                       .blocks
+                       .slice(0, 17)
+                       .reduce((agg, block, i) => (
+                         agg.totalTime += agg.time-block.timestamp,
+                         agg.times.push([agg.time-block.timestamp, block.height - heightData.last, agg.previousDifficulty, agg.totalTime, agg.totalTime / 30]),
+                         agg.time = block.timestamp,
+                         agg.maxDiff = Math.max(agg.maxDiff, block.difficulty),
+                         agg.minDiff = Math.min(agg.minDiff, block.difficulty),
+                         agg.previousDifficulty = block.difficulty,
+                         agg), {time: new Date().getTime()/1000, totalTime: 0, times: [], maxDiff: 0, minDiff: 9999999999})
+) => (
+  <explorer>
+    {url}
+    <block-times>
+      {computedStats
+        .times
+        .map(([time, height, difficulty, cumulativeTime, offset]) => (
+          <block-time className={time >= 30 ? 'over' : 'under'} style={{'width': time / computedStats.totalTime * 100 + '%'}}>
+            {difficulty ? <difficulty-bar style={{'top': (1 - (difficulty - computedStats.minDiff) / (computedStats.maxDiff - computedStats.minDiff)) * 100 + '%'}}></difficulty-bar> : undefined}
+            <height>{height}</height>
+            <time>{time.toFixed(0)}s</time>
+            <cumulative-time>{offset.toFixed(1)}</cumulative-time>
+          </block-time>
+        ))
+      }
+    </block-times>
+    <total-time>{computedStats.totalTime.toFixed(0)}</total-time>
+    <mean-time>{(computedStats.totalTime/17).toFixed(2)}</mean-time>
+  </explorer>
+);
+
+const Network = (
+  {pools},
+  {startTime, difficultyThresholdInput, mutation, knownNetworkRate, heightData},
+  totalBlocks =
+    Object
+      .values(pools)
+      .filter(pool => pool.stats)
+      .reduce((sum, pool) => sum + pool.stats.liveStats.pool.totalBlocks || 0, 0),
+  totalNewBlocks =
+    Object
+      .values(pools)
+      .filter(pool => pool.stats)
+      .reduce((sum, pool) => sum + pool.stats.liveStats.pool.totalBlocks - pool.stats.firstSeenBlockCount, 0)
+  ) => (
   <network>
     <table>
       <thead>
-        <th>pool</th>
-        <th>reported network difficulty</th>
-        <th>reported hashrate</th>
+        <tr><th colspan={9}>values obtained/computed from pools'</th></tr>
+        <tr>
+          <th>rtt</th>
+          <th>pool</th>
+          <th>height</th>
+          <th>network difficulty</th>
+          <th>hashrate</th>
+          <th>% of known pools</th>
+          <th>blocks</th>
+          <th>new blocks</th>
+          <th>seconds per block</th>
+        </tr>
       </thead>
       <tbody>
         {Object
           .values(pools)
-          .sort((a, b) => !a.stats.pool ? 1 : (!b.stats.pool ? -1 : (a.stats.pool.hashrate > b.stats.pool.hashrate ? -1 : 1)))
+          .sort((a, b) => !a.stats ? 1 : (!b.stats ? -1 : a.stats.liveStats.pool.hashrate > b.stats.liveStats.pool.hashrate ? -1 : 1))
           .map(pool => (
-              <tr>
+              <tr className={{
+                'updated': (new Date().getTime() - pool.updated) <= (9 * 1000),
+                'new-block': pool.stats && ((new Date().getTime() - pool.stats.lastSeenBlock) <= (90 * 1000)),
+                'error': pool.error
+              }}>
+                <td>{pool.latency}</td>
                 <td><a href={(A.href = pool.url, `${A.protocol || 'http'}//${A.hostname}`)} target="_new">{A.hostname}</a></td>
-                <td className={new Date().getTime() - pool.updated > 9 * 1000 ? 'difficulty' : 'difficulty updated'}>{(pool.stats.network||{}).difficulty}</td>
-                <td>{pool.stats.pool ? pool.stats.pool.hashrate : undefined}</td>
+                <td className={{'possible-fork': pool.stats && Math.abs(heightData.last - pool.stats.liveStats.network.height) > 5}}>{pool.stats ? pool.stats.liveStats.network.height : undefined}</td>
+                <td>{pool.stats ? pool.stats.liveStats.network.difficulty : undefined}</td>
+                <td>{pool.stats ? pool.stats.liveStats.pool.hashrate : undefined}</td>
+                <td>{pool.stats ? (pool.stats.liveStats.pool.hashrate / knownNetworkRate * 100).toFixed(1) : undefined}</td>
+                <td>{pool.stats ? pool.stats.liveStats.pool.totalBlocks : undefined}</td>
+                <td>{pool.stats ? pool.stats.liveStats.pool.totalBlocks - pool.stats.firstSeenBlockCount : undefined}</td>
+                <td>{pool.stats && pool.stats.liveStats.pool.totalBlocks - pool.stats.firstSeenBlockCount > 0 ? ((new Date().getTime() - startTime) / (pool.stats.liveStats.pool.totalBlocks - pool.stats.firstSeenBlockCount) / 1000).toFixed(1) : undefined}</td>
               </tr>
             ))}
+            <tr><td></td><td></td><td></td><td></td><td>{knownNetworkRate}</td><td></td><td>{totalBlocks}</td><td>{totalNewBlocks}</td></tr>
       </tbody>
     </table>
+    Average Seconds Per Block: {totalNewBlocks > 0 ? ((new Date().getTime() - startTime) / totalNewBlocks / 1000).toFixed(2) : 'waiting for new block'}
     <form action="javascript:" onSubmit={mutation(SET_DIFFICULTY_NOTIFICATION_THRESHOLD)}>
       Difficulty threshold for notification: <input type="number" value={difficultyThresholdInput || 0} onInput={mutation(DIFFICULTY_THRESHOLD_INPUT)} />
       <button>Set</button>
     </form>
+
+    <Explorers />
+    <HeightKnowledge />
   </network>
 );
 
@@ -156,16 +302,18 @@ const PoolError = ({error}) => (
 );
 
 render(
-  View(Pools), {poolUrls, difficultyThresholdInput: difficultyThreshold, difficultyThreshold}, document.body
+  View(Pools), {startTime: new Date().getTime(), poolUrls, explorerUrls, difficultyThresholdInput: difficultyThreshold, difficultyThreshold, hashrates: [], heightData: {last: undefined, seen:[]}}, document.body
 );
 
 function monitorPool(pool, mutation) {
+  const start = new Date().getTime();
   fetch(pool.url)
     .then(response => {
+      const end = new Date().getTime();
       response
         .json()
-        .then(json => mutation(UPDATE_STATS)(pool, json))
-        .catch(error => console.log('Error decoding json', pool.url, response));
+        .then(json => mutation(UPDATE_STATS)(pool, json, end - start, mutation))
+        .catch(error => console.log('Error decoding json', pool.url, response, error));
       setTimeout(() => monitorPool(pool, mutation), 10000);
     })
     .catch(error => {
@@ -175,6 +323,27 @@ function monitorPool(pool, mutation) {
     });
 
   return pool;
+}
+
+function monitorExplorer(explorer, _, mutation) {
+  monitor((start = new Date().getTime()) =>
+    fetch(explorer.url, {method: 'POST', body: JSON.stringify({"jsonrpc":"2.0","id":"test","method":"f_blocks_list_json","params":{"height": _.heightData.last || 0}})})
+      .then(response =>
+        response
+          .json()
+          .then(json => mutation(UPDATE_EXPLORER)(explorer, json, new Date().getTime() - start, mutation))
+      ), 10000);
+
+  return explorer;
+}
+
+function monitor(fn, timeout) {
+  return fn()
+    .then(() => setTimeout(() => monitor(fn, timeout), timeout))
+    .catch(error => {
+      console.log('Monitor error', error);
+      setTimeout(fn, timeout);
+    });
 }
 
 function getPoolStats(url, updateStats) {

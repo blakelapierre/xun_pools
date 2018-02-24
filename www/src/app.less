@@ -19,11 +19,20 @@ body {
 
 @keyframes updated {
   from {
-    color: #fff;
+    opacity: 1;
   }
 
   to {
-    color: #444;
+    opacity: 0.25;
+  }
+}
+
+@keyframes new-block {
+  from {
+    background-color: rgba(128, 255, 0, 0.5);
+  }
+  to {
+    background-color: rgba(0, 0, 0, 0, 0);
   }
 }
 
@@ -35,14 +44,62 @@ view {
   overflow-y: auto;
 
   network {
+    thead {
+      tr {
+        text-align: center;
+      }
+    }
+
+    th {
+      padding: 0 0.25rem;
+
+      font-size: 0.8em;
+
+      border-left: solid 1px #999;
+      border-right: solid 1px #999;
+    }
+
     tr {
-      .difficulty {
+
+      td {
         text-align: center;
 
-        &.updated {
-          animation: updated 10s linear;
-          animation-fill-mode: both;
+        font-size: 0.8em;
+
+        &:nth-child(1) {
+          font-size: 0.8em;
         }
+
+        &:nth-child(2) {
+          text-align: right;
+
+          font-size: inherit;
+
+          background-color: rgba(255, 255, 255, 0.05);
+
+          a {
+            color: #9f9;
+            text-decoration: none;
+
+            &:visited {
+              color: #99f;
+            }
+          }
+        }
+      }
+
+      &.updated {
+        animation: updated 10s linear;
+        animation-fill-mode: forwards;
+      }
+
+      &.new-block {
+        animation: new-block 90s linear;
+        animation-fill-mode: forwards;
+      }
+
+      &.error {
+        background-color: rgba(255, 0, 0, 0.5);
       }
     }
   }
@@ -58,6 +115,77 @@ view {
       padding: 1em;
 
       font-weight: bold;
+
+      .possible-fork {
+        background-color: rgba(255, 0, 0, 0.75);
+      }
+
+      explorers {
+        explorer {
+          block-times {
+            display: flex;
+
+            block-time  {
+              position: relative;
+              display: block;
+
+              padding: 0.25em 0;
+
+              justify-content: center;
+
+              font-size: 0.75em;
+
+              &.under {
+                difficulty-bar { background-color: rgba(0, 255, 0, 0.5); }
+              }
+
+              &.over {
+                difficulty-bar { background-color: rgba(255, 0, 0, 0.5); }
+              }
+
+              difficulty-bar {
+                position: absolute;
+
+                height: 0.5em;
+                width: 100%;
+              }
+
+              height {
+                display: block;
+                text-align: center;
+
+                font-size: 0.7em;
+              }
+
+              time {
+                display: block;
+                text-align: center;
+
+                font-size: 0.7em;
+              }
+
+              cumulative-time {
+                display: block;
+                text-align: center;
+
+                font-size: 0.7em;
+              }
+            }
+          }
+
+          total-time {
+            display: block;
+
+            text-align: center;
+          }
+
+          mean-time {
+            display: block;
+
+            text-align: center;
+          }
+        }
+      }
     }
 
     pool {
@@ -132,6 +260,8 @@ view {
 
     donate {
       display: block;
+
+      font-size: 0.75em;
 
       word-break: break-word;
     }
