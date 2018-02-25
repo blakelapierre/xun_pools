@@ -33,6 +33,8 @@ const START_EXPLORER_MONITOR = (_, mutation) => _.explorers = _.explorerUrls.map
 
 
 const UPDATE_STATS = (_, pool, liveStats, latency, mutation) => {
+  if (_.heightData.firstSeen === undefined) _.heightData.firstSeen = liveStats.network.height; // ...could be not what's expected it forked/stalled pool comes first
+
   Object.assign(pool.stats = pool.stats || {
     firstSeenBlockCount: liveStats.pool.totalBlocks,
     lastSeenBlockCount: liveStats.pool.totalBlocks,
@@ -218,7 +220,7 @@ const Network = (
         </tr>
       </thead>
 
-      <thead><th colspan={9}>active pools</th></thead>
+      <thead><th colspan={9}>active pools {heightData.last - heightData.firstSeen > 0 ? `(${totalNewBlocks}/${heightData.last - heightData.firstSeen}) [${(totalNewBlocks / (heightData.last - heightData.firstSeen) * 100).toFixed(2)}%] of seen blocks` : undefined}</th></thead>
       <PoolListBody pools={activePools} showSummary={true} />
 
       <thead><th colspan={9}>possibly forked pools</th></thead>
@@ -228,22 +230,23 @@ const Network = (
       <PoolListBody pools={unrespondedPools} />
 
     </table>
+
+    <Explorers />
+    <HeightKnowledge />
+
     Average Seconds Per Block: {totalNewBlocks > 0 ? ((new Date().getTime() - startTime) / totalNewBlocks / 1000).toFixed(2) : 'waiting for new block'}
     <form action="javascript:" onSubmit={mutation(SET_DIFFICULTY_NOTIFICATION_THRESHOLD)}>
       Difficulty threshold for notification: <input type="number" value={difficultyThresholdInput || 0} onInput={mutation(DIFFICULTY_THRESHOLD_INPUT)} />
       <button>Set</button>
     </form>
-
-    <Explorers />
-    <HeightKnowledge />
   </network>
 );
 
 const PoolListBody = (
   {pools, showSummary},
-  {heightData},
+  {heightData, startTime, knownNetworkRate},
 
-  knownNetworkRate = Object.values(pools).reduce((sum, pool) => pool.stats ? sum + pool.stats.liveStats.pool.hashrate : 0, 0),
+  // knownNetworkRate = Object.values(pools).reduce((sum, pool) => pool.stats ? sum + pool.stats.liveStats.pool.hashrate : 0, 0),
 
   totalBlocks =
     pools
