@@ -24,5 +24,11 @@ export default [
   'https://turtlecoinpool.ml:8443/live_stats',
   'http://173.249.31.251:8117/live_stats',
   'https://api.trtl.flashpool.club/live_stats',
-  'http://78.46.85.142:6229/live_stats'
+  'https://blocks.turtle.link/pool/trtl.blockchainera.net/live_stats',
+  'https://turtle.coolmining.club/live_stats',
+  'https://cryptoknight.cc/rpc/turtle/live_stats',
+  'https://blocks.turtle.link/pool/etnchina.io/live_stats',
+  'https://z-pool.com/api/live_stats',
+  'http://turtle24.ru:1117/live_stats',
+  'https://pool.turtlecoin.fr:8117/live_stats'
 ];
