@@ -262,7 +262,7 @@ const PoolListBody = (
       .map(pool => (
           <tr className={{
             'updated': (new Date().getTime() - pool.updated) <= (9 * 1000),
-            'new-block': pool.stats && ((new Date().getTime() - pool.stats.lastSeenBlock) <= (90 * 1000)),
+            'new-block': pool.stats && ((new Date().getTime() - pool.stats.lastSeenBlock) <= (5 * 60 * 1000)),
             'error': pool.error
           }}>
             <td>{pool.latency}</td>
