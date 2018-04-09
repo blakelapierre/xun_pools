@@ -121,7 +121,7 @@ const View = (Component) => ({started, ...props}, {mutation}) => (
 const Pools = ({pools, poolsStats}, {mutation}) => (
   <pools>
     <Network pools={pools} />
-    <donate>Donate to: TRTLv1W1So77yGbVtrgf8G4epg5Fhq9hEZvpZC8ev86xRVLYsQQMHrxQG92QVjUU3bcE6ThGw9vSbEHBMejJpexE2sdrTC24ZXR</donate>
+    <donate>Donate to: Pv7ydx95p4Y11ZQaZGKMxGgrSQ9bLCarCGfdYxxDNawJacZrmFQZWQUaQmxADnDg6PjFYc5xd44LJQBroUqiJba72nUUFnudx</donate>
   </pools>
 );
 
@@ -152,8 +152,8 @@ const Explorer = (
                        .blocks
                        .slice(0, 17)
                        .reduce((agg, block, i) => (
-                         agg.totalTime += agg.time-block.timestamp,
-                         agg.times.push([agg.time-block.timestamp, block.height - heightData.last, agg.previousDifficulty, agg.totalTime, agg.totalTime / 30]),
+                         agg.totalTime += agg.time - block.timestamp,
+                         agg.times.push([agg.time - block.timestamp, block.height - heightData.last, agg.previousDifficulty, agg.totalTime, agg.totalTime / 30]),
                          agg.time = block.timestamp,
                          agg.maxDiff = Math.max(agg.maxDiff, block.difficulty),
                          agg.minDiff = Math.min(agg.minDiff, block.difficulty),
