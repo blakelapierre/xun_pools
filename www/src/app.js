@@ -57,7 +57,7 @@ const UPDATE_STATS = (_, pool, liveStats, latency, mutation) => {
 
     _.heightData.seen.unshift([liveStats.network.height, new Date().getTime(), pool]);
     _.heightData.span = _.heightData.seen[0][1] - _.heightData.seen[_.heightData.seen.length-1][1];
-    if (_.heightData.seen.length > 17) _.heightData.seen.splice(17, _.heightData.seen.length - 17);
+    if (_.heightData.seen.length > 35) _.heightData.seen.splice(35, _.heightData.seen.length - 35);
   }
 
 
@@ -150,7 +150,7 @@ const Explorer = (
   {explorer:{url, stats}}, {heightData},
   computedStats = stats.result
                        .blocks
-                       .slice(0, 17)
+                       .slice(0, 35)
                        .reduce((agg, block, i) => (
                          agg.totalTime += agg.time - block.timestamp,
                          agg.times.push([agg.time - block.timestamp, block.height - heightData.last, agg.previousDifficulty, agg.totalTime, agg.totalTime / 30]),
@@ -176,7 +176,7 @@ const Explorer = (
       }
     </block-times>
     <total-time>{computedStats.totalTime.toFixed(0)}</total-time>
-    <mean-time>{(computedStats.totalTime/17).toFixed(2)}</mean-time>
+    <mean-time>{(computedStats.totalTime/35).toFixed(2)}</mean-time>
   </explorer>
 );
 
