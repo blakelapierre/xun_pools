@@ -3,6 +3,8 @@ import { h, render } from 'preact-cycle';
 import poolUrls from './pools';
 import explorerUrls from './explorers';
 
+const blockTarget = 120;
+
 const A = document.createElement('a');
 
 // https://stackoverflow.com/questions/879152/how-do-i-make-javascript-beep
@@ -153,7 +155,7 @@ const Explorer = (
                        .slice(0, 35)
                        .reduce((agg, block, i) => (
                          agg.totalTime += agg.time - block.timestamp,
-                         agg.times.push([agg.time - block.timestamp, block.height - heightData.last, agg.previousDifficulty, agg.totalTime, agg.totalTime / 30]),
+                         agg.times.push([agg.time - block.timestamp, block.height - heightData.last, agg.previousDifficulty, agg.totalTime, agg.totalTime / blockTarget]),
                          agg.time = block.timestamp,
                          agg.maxDiff = Math.max(agg.maxDiff, block.difficulty),
                          agg.minDiff = Math.min(agg.minDiff, block.difficulty),
@@ -166,7 +168,7 @@ const Explorer = (
       {computedStats
         .times
         .map(([time, height, difficulty, cumulativeTime, offset]) => (
-          <block-time className={time >= 30 ? 'over' : 'under'} style={{'width': time / computedStats.totalTime * 100 + '%'}}>
+          <block-time className={time >= blockTarget ? 'over' : 'under'} style={{'width': time / computedStats.totalTime * 100 + '%'}}>
             {difficulty ? <difficulty-bar style={{'top': (1 - (difficulty - computedStats.minDiff) / (computedStats.maxDiff - computedStats.minDiff)) * 100 + '%'}}></difficulty-bar> : undefined}
             <height>{height}</height>
             <time>{time.toFixed(0)}s</time>
